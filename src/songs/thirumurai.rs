@@ -2,7 +2,6 @@ use rayon::prelude::*;
 use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 use serde::Serialize;
-use std::cell::LazyCell;
 use std::fs::File;
 use std::sync::LazyLock;
 use std::time::Duration;
