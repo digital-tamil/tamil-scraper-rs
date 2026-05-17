@@ -2,11 +2,13 @@ use rayon::prelude::*;
 use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 use serde::Serialize;
+use std::cell::LazyCell;
 use std::fs::File;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 #[derive(Serialize)]
-struct Song {
+struct Thirumurai {
     id: String,      // e.g., "1.001"
     url: String,     // The resolved URL
     lyrics: String,  // Holds the title, metadata, and stanzas
@@ -24,7 +26,7 @@ pub fn thirumurai() {
     let tag_re = Regex::new(r"(?i)<[^>]+>").unwrap();
 
     // Define the ranges for Volumes 1 through 8
-    let ranges = [
+    const RANGES: [(u32, u32); 8] = [
         (1, 136),
         (2, 122),
         (3, 90),
@@ -37,7 +39,7 @@ pub fn thirumurai() {
 
     // Flatten targets into a single array for Rayon
     let mut targets = Vec::new();
-    for (vol, max_song) in ranges {
+    for (vol, max_song) in RANGES {
         for song in 1..=max_song {
             targets.push((vol, song));
         }
@@ -45,7 +47,7 @@ pub fn thirumurai() {
 
     println!("Total URLs to process: {}", targets.len());
 
-    let mut songs: Vec<Song> = targets
+    let mut songs: Vec<Thirumurai> = targets
         .into_par_iter()
         .filter_map(|(vol, song)| {
             // Smart URL generation: Try 3-digit format first, then fallback to 2-digit format
@@ -66,9 +68,11 @@ pub fn thirumurai() {
                     {
                         html_text = Some(text);
                         resolved_url = url.clone();
+                        println!("Scrapped song {song:03} from {vol}.");
+
                         break;
                     }
-                    std::thread::sleep(Duration::from_millis(300));
+                    std::thread::sleep(Duration::from_millis(312));
                 }
                 if html_text.is_some() {
                     break;
@@ -93,17 +97,19 @@ pub fn thirumurai() {
     serde_json::to_writer_pretty(file, &songs).expect("Failed to write JSON");
 
     println!(
-        "Successfully scraped and saved {} entries to mayuragiri_output.json",
+        "Successfully scraped and saved {} entries to data/thirumurai.json",
         songs.len()
     );
 }
 
-fn parse_html(vol: u32, song: u32, url: &str, html: &str, tag_re: &Regex) -> Option<Song> {
+static CONTENT_SEL: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("div.entry-content").unwrap());
+
+fn parse_html(vol: u32, song: u32, url: &str, html: &str, tag_re: &Regex) -> Option<Thirumurai> {
     let document = Html::parse_document(html);
 
     // The main container of the post
-    let content_sel = Selector::parse("div.entry-content").ok()?;
-    let container = document.select(&content_sel).next()?;
+    let container = document.select(&CONTENT_SEL).next()?;
 
     let mut text_blocks = Vec::new();
 
@@ -133,11 +139,11 @@ fn parse_html(vol: u32, song: u32, url: &str, html: &str, tag_re: &Regex) -> Opt
         return None;
     }
 
-    Some(Song {
+    Some(Thirumurai {
         id: format!("{}.{:03}", vol, song), // e.g., "1.001"
         url: url.to_string(),
         lyrics,
-        meaning: String::new(), // The target website does not provide clear meaning sections.
+        meaning: String::new(),
     })
 }
 

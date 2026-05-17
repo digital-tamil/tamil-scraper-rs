@@ -3,6 +3,7 @@ use regex::Regex;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::fs::File;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 #[derive(Serialize)]
@@ -65,6 +66,8 @@ pub fn thiruppugazh() {
         songs.len()
     );
 }
+static SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse("td.t2l.ttxt.pad30").unwrap());
 
 fn parse_html(
     id: u32,
@@ -76,8 +79,7 @@ fn parse_html(
     let document = Html::parse_document(html);
 
     // Select the table cell holding the target data
-    let selector = Selector::parse("td.t2l.ttxt.pad30").ok()?;
-    let container = document.select(&selector).next()?;
+    let container = document.select(&SELECTOR).next()?;
     let inner_html = container.inner_html();
 
     // Split HTML by "......... பாடல் ........."
