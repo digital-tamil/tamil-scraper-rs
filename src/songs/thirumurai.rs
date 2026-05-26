@@ -14,7 +14,7 @@ struct Thirumurai {
     meaning: String, // Kept empty as per the schema (no meaning section on site)
 }
 
-pub fn thirumurai() {
+pub fn thirumurai(output_path: &str) {
     println!("Starting Mayuragiri scraper...");
 
     let client = reqwest::blocking::Client::builder()
@@ -92,7 +92,7 @@ pub fn thirumurai() {
     });
 
     // Save formatted JSON output
-    let file = File::create("data/thirumurai.json").expect("Failed to create output file");
+    let file = File::create(output_path).expect("Failed to create output file");
     serde_json::to_writer_pretty(file, &songs).expect("Failed to write JSON");
 
     println!(

@@ -13,7 +13,7 @@ struct Thiruppugazh {
     meaning: String,
 }
 
-pub fn thiruppugazh() {
+pub fn thiruppugazh(output_path: &str) {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
@@ -58,7 +58,7 @@ pub fn thiruppugazh() {
     songs.sort_by_key(|s| s.id);
 
     // Write to a pretty-formatted JSON file
-    let file = File::create("data/thiruppugazh.json").expect("Failed to create output file");
+    let file = File::create(output_path).expect("Failed to create output file");
     serde_json::to_writer_pretty(file, &songs).expect("Failed to write JSON");
 
     println!(
